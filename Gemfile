@@ -1,0 +1,6 @@
+source 'https://rubygems.org'
+gem 'mysql2'
+gem 'dotenv'
+gem 'sinatra'
+gem 'rackup'
+gem 'puma'

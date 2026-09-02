@@ -24,11 +24,11 @@
   <body>
     <h1>New Exercise</h1>
 
-<form action="https://exercice-looper.mycpnv.ch/exercises" accept-charset="UTF-8" method="post"><input name="utf8" type="hidden" value="&#x2713;" /><input type="hidden" name="authenticity_token" value="8SCVOJVyFebftCk1YN/xHep/f2LGZhQPQzyEDc0H1PxMg936pqHiIkfYYCiMz+hkNrb0eOdeXl2DAx+2DCYiQA==" />
+<form action="/traitement" method="post">
 
   <div class="field">
     <label for="exercise_title">Title</label>
-    <input type="text" name="exercise[title]" id="exercise_title" />
+    <input type="text" name="exercise[title]" id="exercise_title" required />
   </div>
 
   <div class="actions">
