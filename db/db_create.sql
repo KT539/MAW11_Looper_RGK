@@ -7,14 +7,14 @@ USE MAW11_Looper_RGK;
 -- FORM table
 CREATE TABLE forms (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(30) NULL,
+    name VARCHAR(30) NOT NULL,
     status VARCHAR(30) NOT NULL
 );
 
 -- LABELS table
 CREATE TABLE labels (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    label_name VARCHAR(50) NULL,
+    label_name VARCHAR(50) NOT NULL,
     type VARCHAR(30) NOT NULL,
     form_id INT NOT NULL,
     CONSTRAINT fk_labels_form
