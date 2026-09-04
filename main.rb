@@ -6,6 +6,7 @@ require 'fileutils'
 
 PUBLIC_FOLDER = File.expand_path('Site_remastered', __dir__)
 FIELDS_TEMPLATE_PATH = File.join(PUBLIC_FOLDER, 'exercises', 'template', 'fields.html')
+EXERCISES_FOLDER = File.join(PUBLIC_FOLDER, 'exercises')
 FIELD_TYPES = %w[single_line single_line_list multi_line].freeze
 
 DB = Mysql2::Client.new(
@@ -18,7 +19,27 @@ DB = Mysql2::Client.new(
 set :public_folder, PUBLIC_FOLDER
 
 def fields_page_path(form_id)
-  File.join(PUBLIC_FOLDER, 'exercises', form_id.to_s, 'fields.html')
+  File.join(EXERCISES_FOLDER, form_id.to_s, 'fields.html')
+end
+
+def form_directory_path(form_id)
+  File.join(EXERCISES_FOLDER, form_id.to_s)
+end
+
+def cleanup_expired_form_directories
+  expiration_time = Time.now - 86_400
+
+  Dir.children(EXERCISES_FOLDER).each do |entry|
+    next unless entry.match?(/\d/)
+
+    directory = File.join(EXERCISES_FOLDER, entry)
+    next unless File.directory?(directory)
+
+    created_at = File.birthtime(directory)
+    FileUtils.rm_rf(directory) if created_at < expiration_time
+  rescue NotImplementedError
+    FileUtils.rm_rf(directory) if File.mtime(directory) < expiration_time
+  end
 end
 
 def generate_fields_page(form_id)
@@ -40,6 +61,7 @@ def generate_fields_page(form_id)
     .sub('[Forms title]', Rack::Utils.escape_html(form['name']))
     .sub('<!-- LABEL_ROWS -->', label_rows)
     .sub('<!-- FIELD_FORM_ACTION -->', "http://localhost:4567/exercises/#{form_id}/fields")
+    .sub('<!-- COMPLETE_FORM_ACTION -->', "http://localhost:4567/exercises/#{form_id}/complete")
 
   page_path = fields_page_path(form_id)
   FileUtils.mkdir_p(File.dirname(page_path))
@@ -48,7 +70,7 @@ def generate_fields_page(form_id)
 end
 
 get '/' do
-  redirect '/exercises/new.html'
+  redirect '/index.html'
 end
 
 post '/traitement' do
@@ -78,4 +100,18 @@ post '/exercises/:form_id/fields' do
   generate_fields_page(form_id)
 
   redirect "/exercises/#{form_id}/fields.html"
+end
+
+post '/exercises/:form_id/complete' do
+  form_id = params[:form_id]
+  halt 404, 'Exercice introuvable.' unless form_id.match?(/\d/)
+
+  form_exists = DB.prepare('SELECT id FROM forms WHERE id = ?').execute(form_id).first
+  halt 404, 'Exercice introuvable.' unless form_exists
+
+  DB.prepare('UPDATE forms SET status = ? WHERE id = ?').execute('Answering', form_id)
+  FileUtils.rm_rf(form_directory_path(form_id))
+  cleanup_expired_form_directories
+
+  redirect '/exercises.html'
 end
