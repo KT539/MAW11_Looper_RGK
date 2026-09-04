@@ -64,7 +64,7 @@ end
 
 post '/exercises/:form_id/fields' do
   form_id = params[:form_id]
-  halt 404, 'Exercice introuvable.' unless form_id.match?(/\A[1-9]\d*\z/)
+  halt 404, 'Exercice introuvable.' unless form_id.match?(/\d/)
 
   label_name = params.dig('field', 'label').to_s.strip
   value_kind = params.dig('field', 'value_kind').to_s
@@ -74,8 +74,7 @@ post '/exercises/:form_id/fields' do
   form_exists = DB.prepare('SELECT id FROM forms WHERE id = ?').execute(form_id).first
   halt 404, 'Exercice introuvable.' unless form_exists
 
-  DB.prepare('INSERT INTO labels (label_name, type, form_id) VALUES (?, ?, ?)')
-    .execute(label_name, value_kind, form_id)
+  DB.prepare('INSERT INTO labels (label_name, type, form_id) VALUES (?, ?, ?)').execute(label_name, value_kind, form_id)
   generate_fields_page(form_id)
 
   redirect "/exercises/#{form_id}/fields.html"
