@@ -52,7 +52,10 @@ def generate_fields_page(form_id)
       <tr>
         <td>#{Rack::Utils.escape_html(label['label_name'])}</td>
         <td>#{Rack::Utils.escape_html(label['type'])}</td>
-        <td></td>
+        <td>
+            <button type="button" class="" href="" label-id="#{label['id']}"></button>
+            <button type="button" class="" label-id="#{label['id']}"></button>
+        </td>
       </tr>
     HTML
   end.join
@@ -114,4 +117,37 @@ post '/exercises/:form_id/complete' do
   cleanup_expired_form_directories
 
   redirect '/exercises.html'
+end
+
+post '/exercises/:form_id/labels/:label_id/update' do
+  form_id = params[:form_id]
+  label_id = params[:label_id]
+  halt 404, 'Exercice introuvable.' unless form_id.match?(/\d/)
+  halt 404, 'Label introuvable.' unless label_id.match?(/\d/)
+
+  label_name = params.dig('field', 'label').to_s.strip
+  value_kind = params.dig('field', 'value_kind').to_s.strip
+  halt 422, 'Veuillez saisir un label.' if label_name.empty?
+  halt 422, 'Type de valeur invalide.' unless FIELD_TYPES.include?(value_kind)
+
+  label_exists = DB.prepare('SELECT id FROM labels WHERE id = ? AND form_id = ?').execute(label_id, form_id).first
+  halt 404, 'Label introuvable.' unless label_exists
+
+  DB.prepare('UPDATE forms SET label_name = ? type = ? WHERE id = ? AND form_id = ?').execute(label_name, value_kind, label_id, form_id)
+  generate_fields_page(form_id)
+end
+
+post '/exercises/:form_id/labels/:label_id/delete' do
+  form_id = params[:form_id]
+  label_id = params[:label_id]
+  halt 404, 'Exercice introuvable.' unless form_id.match?(/\d/)
+  halt 404, 'Label introuvable.' unless label_id.match?(/\d/)
+
+  label_exists = DB.prepare('SELECT id FROM labels WHERE id = ? AND form_id = ?').execute(label_id, form_id).first
+  halt 404, 'Label introuvable.' unless label_exists
+
+  DB.prepare('DELETE FROM labels WHERE id = ? AND form_id = ?').execute(label_id, form_id)
+  generate_fields_page(form_id)
+
+  redirect "/exercises/#{form_id}/fields.html"
 end
