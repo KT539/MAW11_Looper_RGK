@@ -52,10 +52,7 @@ def generate_fields_page(form_id)
       <tr>
         <td>#{Rack::Utils.escape_html(label['label_name'])}</td>
         <td>#{Rack::Utils.escape_html(label['type'])}</td>
-        <td>
-            <button type="button" class="" href="" label-id="#{label['id']}"></button>
-            <button type="button" class="" label-id="#{label['id']}"></button>
-        </td>
+        <td></td>
       </tr>
     HTML
   end.join
