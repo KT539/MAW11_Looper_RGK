@@ -4,10 +4,18 @@ require 'sinatra'
 require 'mysql2'
 require 'fileutils'
 
+
 PUBLIC_FOLDER = File.expand_path('Site_remastered', __dir__)
 FIELDS_TEMPLATE_PATH = File.join(PUBLIC_FOLDER, 'exercises', 'template', 'fields.html')
 EXERCISES_FOLDER = File.join(PUBLIC_FOLDER, 'exercises')
 FIELD_TYPES = %w[single_line single_line_list multi_line].freeze
+FIELD_TYPE_LABELS = {
+  'single_line' => 'Single line text',
+  'single_line_list' => 'List of single lines',
+  'multi_line' => 'Multi-line text'
+}.freeze
+EDIT_TEMPLATE_PATH = File.join(PUBLIC_FOLDER, 'exercises', 'template', 'edit.html')
+
 
 DB = Mysql2::Client.new(
   host: ENV.fetch('DB_HOST'),
@@ -16,15 +24,27 @@ DB = Mysql2::Client.new(
   database: ENV.fetch('DB_DATABASE')
 )
 
+
 set :public_folder, PUBLIC_FOLDER
+
+
+def value_kind_options(selected_kind)
+  FIELD_TYPES.map do |kind|
+    selected = kind == selected_kind ? ' selected="selected"' : ''
+    "<option#{selected} value=\"#{kind}\">#{FIELD_TYPE_LABELS[kind]}</option>"
+  end.join
+end
+
 
 def fields_page_path(form_id)
   File.join(EXERCISES_FOLDER, form_id.to_s, 'fields.html')
 end
 
+
 def form_directory_path(form_id)
   File.join(EXERCISES_FOLDER, form_id.to_s)
 end
+
 
 def cleanup_expired_form_directories
   expiration_time = Time.now - 86_400
@@ -42,19 +62,26 @@ def cleanup_expired_form_directories
   end
 end
 
+
 def generate_fields_page(form_id)
   form = DB.prepare('SELECT name FROM forms WHERE id = ?').execute(form_id).first
   return false unless form
 
-  labels = DB.prepare('SELECT label_name, type FROM labels WHERE form_id = ? ORDER BY id').execute(form_id)
+  labels = DB.prepare('SELECT id, label_name, type FROM labels WHERE form_id = ? ORDER BY id').execute(form_id)
+
   label_rows = labels.map do |label|
     <<~HTML
-      <tr>
-        <td>#{Rack::Utils.escape_html(label['label_name'])}</td>
-        <td>#{Rack::Utils.escape_html(label['type'])}</td>
-        <td></td>
-      </tr>
-    HTML
+    <tr>
+      <td>#{Rack::Utils.escape_html(label['label_name'])}</td>
+      <td>#{Rack::Utils.escape_html(label['type'])}</td>
+      <td>
+          <a class="icon-button" href="/exercises/#{form_id}/labels/#{label['id']}/edit" title="Update"><i class="fa fa-edit"></i></a>
+          <form action="/exercises/#{form_id}/labels/#{label['id']}/delete" method="post" style="display:inline">
+              <button type="submit" class="icon-button icon-delete" title="Delete"><i class="fa fa-trash-alt"></i></button>
+          </form>
+      </td>
+    </tr>
+  HTML
   end.join
 
   page_content = File.read(FIELDS_TEMPLATE_PATH)
@@ -69,9 +96,11 @@ def generate_fields_page(form_id)
   true
 end
 
+
 get '/' do
   redirect '/index.html'
 end
+
 
 post '/traitement' do
   title = params.dig('exercise', 'title').to_s.strip
@@ -83,6 +112,7 @@ post '/traitement' do
 
   redirect "/exercises/#{form_id}/fields.html"
 end
+
 
 post '/exercises/:form_id/fields' do
   form_id = params[:form_id]
@@ -102,6 +132,25 @@ post '/exercises/:form_id/fields' do
   redirect "/exercises/#{form_id}/fields.html"
 end
 
+
+get '/exercises/:form_id/labels/:label_id/edit' do
+  form_id = params[:form_id]
+  label_id = params[:label_id]
+  halt 404, 'Exercice introuvable.' unless form_id.match?(/\d/)
+  halt 404, 'Label introuvable.' unless label_id.match?(/\d/)
+
+  label = DB.prepare('SELECT label_name, type FROM labels WHERE id = ? AND form_id = ?')
+            .execute(label_id, form_id).first
+  halt 404, 'Label introuvable.' unless label
+
+  File.read(EDIT_TEMPLATE_PATH)
+      .sub('<!-- FORM_ID -->', form_id.to_s)
+      .sub('<!-- EDIT_FORM_ACTION -->', "/exercises/#{form_id}/labels/#{label_id}/update")
+      .sub('<!-- LABEL_VALUE -->', Rack::Utils.escape_html(label['label_name']))
+      .sub('<!-- VALUE_KIND_OPTIONS -->', value_kind_options(label['type']))
+end
+
+
 post '/exercises/:form_id/complete' do
   form_id = params[:form_id]
   halt 404, 'Exercice introuvable.' unless form_id.match?(/\d/)
@@ -114,4 +163,41 @@ post '/exercises/:form_id/complete' do
   cleanup_expired_form_directories
 
   redirect '/exercises.html'
+end
+
+
+post '/exercises/:form_id/labels/:label_id/update' do
+  form_id = params[:form_id]
+  label_id = params[:label_id]
+  halt 404, 'Exercice introuvable.' unless form_id.match?(/\d/)
+  halt 404, 'Label introuvable.' unless label_id.match?(/\d/)
+
+  label_name = params.dig('field', 'label').to_s.strip
+  value_kind = params.dig('field', 'value_kind').to_s.strip
+  halt 422, 'Veuillez saisir un label.' if label_name.empty?
+  halt 422, 'Type de valeur invalide.' unless FIELD_TYPES.include?(value_kind)
+
+  label_exists = DB.prepare('SELECT id FROM labels WHERE id = ? AND form_id = ?').execute(label_id, form_id).first
+  halt 404, 'Label introuvable.' unless label_exists
+
+  DB.prepare('UPDATE labels SET label_name = ?, type = ? WHERE id = ? AND form_id = ?').execute(label_name, value_kind, label_id, form_id)
+  generate_fields_page(form_id)
+
+  redirect "/exercises/#{form_id}/fields.html"
+end
+
+
+post '/exercises/:form_id/labels/:label_id/delete' do
+  form_id = params[:form_id]
+  label_id = params[:label_id]
+  halt 404, 'Exercice introuvable.' unless form_id.match?(/\d/)
+  halt 404, 'Label introuvable.' unless label_id.match?(/\d/)
+
+  label_exists = DB.prepare('SELECT id FROM labels WHERE id = ? AND form_id = ?').execute(label_id, form_id).first
+  halt 404, 'Label introuvable.' unless label_exists
+
+  DB.prepare('DELETE FROM labels WHERE id = ? AND form_id = ?').execute(label_id, form_id)
+  generate_fields_page(form_id)
+
+  redirect "/exercises/#{form_id}/fields.html"
 end

@@ -1,0 +1,85 @@
+<header class="heading managing">
+  <section class="container">
+    <a href="../../index.html"><img src="../../assets/logo.png" /></a>
+    <span class="exercise-label">Exercise: <a href="fields.html">testkilian</a></span>
+  </section>
+</header>
+
+<main class="container">
+  <!DOCTYPE html>
+<html>
+  
+<!-- Mirrored from exercice-looper.mycpnv.ch/exercises/469/fields by HTTrack Website Copier/3.x [XR&CO'2014], Wed, 02 Sep 2026 09:40:03 GMT -->
+<!-- Added by HTTrack --><meta http-equiv="content-type" content="text/html;charset=utf-8" /><!-- /Added by HTTrack -->
+<head>
+    <title>ExerciseLooper</title>
+    <meta name="csrf-param" content="authenticity_token" />
+<meta name="csrf-token" content="dbtBJtWamhC/vKeIwZhw7biVIWLF1cgccnOH6WFGKvQu4dLTfS7VQDMCshl59PNcUo0oMnhw4SnhoqYp4mbB6w==" />
+    
+
+    <link rel="stylesheet" media="all" href="../../assets/style.css" />
+    <script src="../../assets/application-9cc88e7fff85c68238012d6b999fd1e76e1d36d66c1ff1be28bfd9056bb845eb.js"></script>
+  </head>
+
+  <body>
+    <div class="row">
+  <section class="column">
+    <h1>Fields</h1>
+    <table class="records">
+      <thead>
+        <tr>
+          <th>Label</th>
+          <th>Value kind</th>
+          <th></th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+  <td>testkilian123</td>
+  <td>multi_line</td>
+  <td>
+    <a class="button" href="/exercises/8/labels/9/edit">Update</a>
+    <form action="/exercises/8/labels/9/delete" method="post" style="display:inline">
+      <button type="submit">Delete</button>
+    </form>
+  </td>
+</tr>
+
+      </tbody>
+    </table>
+    
+    <form action="http://localhost:4567/exercises/8/complete" method="post" onsubmit="return confirm('Are you sure? You will no longer be able to edit this exercise.');">
+      <button class="button" type="submit"><i class="fa fa-comment"></i> Complete and be ready for answers</button>
+    </form>
+    
+  </section>
+  <section class="column">
+    <h1>New Field</h1>
+    <form action="http://localhost:4567/exercises/8/fields" method="post">
+
+  <div class="field">
+    <label for="field_label">Label</label>
+    <input type="text" name="field[label]" id="field_label" required />
+  </div>
+
+  <div class="field">
+    <label for="field_value_kind">Value kind</label>
+    <select name="field[value_kind]" id="field_value_kind"><option selected="selected" value="single_line">Single line text</option>
+<option value="single_line_list">List of single lines</option>
+<option value="multi_line">Multi-line text</option></select>
+  </div>
+
+  <div class="actions">
+    <input type="submit" name="commit" value="Create Field" data-disable-with="Create Field" />
+  </div>
+</form>
+  </section>
+</div>
+
+  </body>
+
+<!-- Mirrored from exercice-looper.mycpnv.ch/exercises/469/fields by HTTrack Website Copier/3.x [XR&CO'2014], Wed, 02 Sep 2026 09:40:04 GMT -->
+</html>
+
+</main>
