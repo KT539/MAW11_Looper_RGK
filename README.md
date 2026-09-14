@@ -1,6 +1,7 @@
 # MAW11 — Looper
 
 Application web locale de création et de réponse à des exercices. Le projet combine une interface HTML/CSS existante, une application Ruby/Sinatra et une base MySQL.
+Modèle : https://exercice-looper.mycpnv.ch
 
 ## Sommaire
 
